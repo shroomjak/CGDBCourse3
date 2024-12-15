@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "zoomablegraphicsview.h"
 #include "ui_mainwindow.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -80,8 +81,6 @@ void MainWindow::displayMap(QMap<QString, QMap<QString, double>> &data)
     ui->graphicsView->setScene(scene);
     ui->graphicsView->show();
 }
-
-
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -168,7 +167,7 @@ void MainWindow::showMonthlySales()
         GROUP BY Month
         ORDER BY Month;
     )");
-    displayTable(query, {"D", "Total sales"});
+    displayTable(query, {"Data", "Total sales"});
 }
 
 void MainWindow::showMonthlySalesChart()
@@ -184,6 +183,7 @@ void MainWindow::showMonthlySalesChart()
         ORDER BY Year, Month;
     )");
 
+    QGraphicsScene *scene = new QGraphicsScene(this);
     QBarSeries *series = new QBarSeries();
     QMap<QString, QBarSet*> yearSets; // QBarSet для каждого года
     QStringList months;
@@ -267,6 +267,7 @@ void MainWindow::showRevenueByGenreChart()
     )");
 
     // Создаём круговую диаграмму
+    QGraphicsScene *scene = new QGraphicsScene(this);
     QPieSeries *series = new QPieSeries();
 
     double otherRevenue = 0.0; // Для суммирования мелких сегментов
@@ -364,6 +365,7 @@ void MainWindow::showTop3ArtistsByGenreChart()
     }
 
     // Создаём серию для stacked bar chart
+    QGraphicsScene *scene = new QGraphicsScene(this);
     QStackedBarSeries *series = new QStackedBarSeries();
     QStringList categories; // Список жанров для оси X
 
@@ -536,6 +538,7 @@ void MainWindow::showTop5ArtistsChart()
     }
 
     // Создаём график
+    QGraphicsScene *scene = new QGraphicsScene(this);
     QChart *chart = new QChart();
     chart->addSeries(series);
     chart->setTitle("Top 5 Artists by Revenue");
@@ -546,10 +549,38 @@ void MainWindow::showTop5ArtistsChart()
     ui->chartView->setRenderHint(QPainter::Antialiasing);
 }
 
+QMap<QString, QColor> MainWindow::GenerateGenreColors(const QMap<QString, QMap<QString, double>> &mapData)
+{
+    QMap<QString, QColor> genreColors;
+    qsrand(QTime::currentTime().msec()); // Инициализация генератора случайных чисел
+
+    for (const auto &country : mapData.keys()) {
+        for (const auto &genre : mapData[country].keys()) {
+            if (!genreColors.contains(genre)) {
+                genreColors[genre] = QColor(qrand() % 256, qrand() % 256, qrand() % 256); // Случайный цвет
+            }
+        }
+    }
+
+    return genreColors;
+}
+
 
 void MainWindow::showInteractiveMap()
 {
     QSqlQuery query(db);
+    query.exec(R"(
+        SELECT BillingCountry, ROUND(SUM(invoice_items.Quantity * invoice_items.UnitPrice), 2) AS TotalSales
+        FROM invoice_items
+        JOIN invoices ON invoice_items.InvoiceId = invoices.InvoiceId
+        JOIN tracks ON invoice_items.TrackId = tracks.TrackId
+        JOIN genres ON tracks.GenreId = genres.GenreId
+        GROUP BY BillingCountry
+        ORDER BY TotalSales DESC;
+    )");
+
+    QMap<QString, QMap<QString, double>> mapData; // Map<Country, Map<Genre, Sales>>
+    displayTable(query, {"Country", "Total sales"});
     query.exec(R"(
         SELECT BillingCountry, genres.Name AS GenreName, SUM(invoice_items.Quantity) AS TotalSales
         FROM invoice_items
@@ -559,8 +590,6 @@ void MainWindow::showInteractiveMap()
         GROUP BY BillingCountry, genres.GenreId
         ORDER BY BillingCountry, TotalSales DESC;
     )");
-
-    QMap<QString, QMap<QString, double>> mapData; // Map<Country, Map<Genre, Sales>>
 
     while (query.next()) {
         QString country = query.value("BillingCountry").toString();

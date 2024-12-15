@@ -1,4 +1,3 @@
-
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -49,6 +48,8 @@ private:
     QSqlDatabase db;
     void displayTable(QSqlQuery query, const QStringList &headers);
     void displayMap(QMap<QString, QMap<QString, double>> &data);
+    QMap<QString, QColor> GenerateGenreColors(const QMap<QString, QMap<QString, double>> &mapData);
+    void AddLegendToScene(QGraphicsScene *scene, const QMap<QString, QColor> &genreColors);
 };
 
 #endif // MAINWINDOW_H

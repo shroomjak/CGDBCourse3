@@ -6,73 +6,121 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1256</width>
-    <height>613</height>
+    <width>1400</width>
+    <height>846</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Sales Analytics Dashboard</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QHBoxLayout" name="mainLayout">
     <item>
-     <widget class="QGraphicsView" name="graphicsView">
+     <widget class="ZoomableGraphicsView" name="graphicsView">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
       <property name="minimumSize">
        <size>
-        <width>961</width>
-        <height>526</height>
+        <width>800</width>
+        <height>600</height>
        </size>
+      </property>
+      <property name="styleSheet">
+       <string>
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+       </string>
       </property>
      </widget>
     </item>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="sideLayout">
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout">
+       <layout class="QVBoxLayout" name="buttonLayout">
+        <property name="spacing">
+         <number>15</number>
+        </property>
         <item>
          <widget class="QPushButton" name="btnRevenueByGenre">
+          <property name="styleSheet">
+           <string notr="true">
+            background-color: #FFFFFF;
+            color: black;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+           </string>
+          </property>
           <property name="text">
-           <string>✵✵Навар по темкам✵✵</string>
+           <string>Гистограмма суммарно по жанрам</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="btnMonthlySales">
+          <property name="styleSheet">
+           <string notr="true">
+            background-color: #0039A6;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+           </string>
+          </property>
           <property name="text">
-           <string>Навар за месяцы</string>
+           <string>Суммарно по месяцам</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="btnTop5Artists">
+          <property name="styleSheet">
+           <string notr="true">
+            background-color: #0039A6;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+           </string>
+          </property>
           <property name="text">
-           <string>✵✵✵✵Капитальные красаучики✵✵✵✵</string>
+           <string>Топ 5 артистов</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="btnTop3Artists">
+          <property name="styleSheet">
+           <string notr="true">
+            background-color: #D52B1E;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+           </string>
+          </property>
           <property name="text">
-           <string>✵три четких пацана в каждой темке✵</string>
+           <string>Топ 3 в жанре</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="btnInteractiveMap">
+          <property name="styleSheet">
+           <string notr="true">
+            background-color: #D52B1E;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+           </string>
+          </property>
           <property name="text">
-           <string>✵✵✵✵✵✵✵✵Малява✵✵✵✵✵✵✵✵</string>
+           <string>Статистика на карте по жанрам</string>
           </property>
          </widget>
         </item>
@@ -86,10 +134,35 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>400</width>
+          <height>200</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string>
+          border: 1px solid #ccc;
+          background-color: #f1f1f1;
+         </string>
+        </property>
        </widget>
       </item>
       <item>
-       <widget class="QChartView" name="chartView"/>
+       <widget class="QChartView" name="chartView">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>400</width>
+          <height>300</height>
+         </size>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -100,7 +173,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1256</width>
+     <width>1400</width>
      <height>26</height>
     </rect>
    </property>
@@ -121,6 +194,11 @@
    <class>QChartView</class>
    <extends>QGraphicsView</extends>
    <header>QtCharts</header>
+  </customwidget>
+  <customwidget>
+   <class>ZoomableGraphicsView</class>
+   <extends>QGraphicsView</extends>
+   <header>zoomablegraphicsview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
