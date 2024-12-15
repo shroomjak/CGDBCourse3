@@ -4,9 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       += core gui sql widgets
+QT       += core gui sql widgets charts
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets charts
 
 TARGET = SalesAnalytics
 TEMPLATE = app
