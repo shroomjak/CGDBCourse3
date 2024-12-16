@@ -39,7 +39,9 @@ private slots:
     void showTop5ArtistsPentagonChart();
     void showTop5ArtistsChart();
 
-    void showInteractiveMap();
+    void showInteractiveMapSum();
+    void showInteractiveMapSumChart();
+    void showInteractiveMapGenre();
     void clearScene();
 
 
@@ -47,9 +49,11 @@ private:
     Ui::MainWindow *ui;
     QSqlDatabase db;
     void displayTable(QSqlQuery query, const QStringList &headers);
-    void displayMap(QMap<QString, QMap<QString, double>> &data);
+    void displayMapSum(QMap<QString, QMap<QString, double>> &data);
     QMap<QString, QColor> GenerateGenreColors(const QMap<QString, QMap<QString, double>> &mapData);
     void AddLegendToScene(QGraphicsScene *scene, const QMap<QString, QColor> &genreColors);
+    void displayMapGenre(const QMap<QString, QMap<QString, double>> &mapData);
+
 };
 
 #endif // MAINWINDOW_H

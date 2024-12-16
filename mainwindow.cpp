@@ -37,7 +37,7 @@ QMap<QString, QPointF> countryCoordinates = {
 
 
 
-void MainWindow::displayMap(QMap<QString, QMap<QString, double>> &data)
+void MainWindow::displayMapSum(QMap<QString, QMap<QString, double>> &data)
 {
     QGraphicsScene *scene = new QGraphicsScene(this);
 
@@ -110,7 +110,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->btnTop5Artists, &QPushButton::clicked, this, &MainWindow::showTop5ArtistsPentagonChart);
     connect(ui->btnTop5Artists, &QPushButton::clicked, this, &MainWindow::showTop5ArtistsChart);
 
-    connect(ui->btnInteractiveMap, &QPushButton::clicked, this, &MainWindow::showInteractiveMap);
+    connect(ui->btnInteractiveMapSum, &QPushButton::clicked, this, &MainWindow::showInteractiveMapSum);
+    connect(ui->btnInteractiveMapSum, &QPushButton::clicked, this, &MainWindow::showInteractiveMapSumChart);
+
+    connect(ui->btnInteractiveMapGenre, &QPushButton::clicked, this, &MainWindow::showInteractiveMapGenre);
 }
 
 MainWindow::~MainWindow()
@@ -183,7 +186,6 @@ void MainWindow::showMonthlySalesChart()
         ORDER BY Year, Month;
     )");
 
-    QGraphicsScene *scene = new QGraphicsScene(this);
     QBarSeries *series = new QBarSeries();
     QMap<QString, QBarSet*> yearSets; // QBarSet для каждого года
     QStringList months;
@@ -209,7 +211,7 @@ void MainWindow::showMonthlySalesChart()
         }
 
         // Добавляем продажи в соответствующий месяц
-        yearSets[year]->replace(month - 1, sales);
+        yearSets[year]->replace(month-1, sales);
     }
 
     // Настраиваем график
@@ -267,7 +269,6 @@ void MainWindow::showRevenueByGenreChart()
     )");
 
     // Создаём круговую диаграмму
-    QGraphicsScene *scene = new QGraphicsScene(this);
     QPieSeries *series = new QPieSeries();
 
     double otherRevenue = 0.0; // Для суммирования мелких сегментов
@@ -285,10 +286,7 @@ void MainWindow::showRevenueByGenreChart()
         count++;
     }
 
-    // Добавляем "Other" в диаграмму, если есть оставшиеся данные
-    if (otherRevenue > 0.0) {
-        series->append("Other", otherRevenue);
-    }
+    series->append("Other", otherRevenue);
 
     // Настраиваем диаграмму
     QChart *chart = new QChart();
@@ -365,7 +363,6 @@ void MainWindow::showTop3ArtistsByGenreChart()
     }
 
     // Создаём серию для stacked bar chart
-    QGraphicsScene *scene = new QGraphicsScene(this);
     QStackedBarSeries *series = new QStackedBarSeries();
     QStringList categories; // Список жанров для оси X
 
@@ -538,7 +535,6 @@ void MainWindow::showTop5ArtistsChart()
     }
 
     // Создаём график
-    QGraphicsScene *scene = new QGraphicsScene(this);
     QChart *chart = new QChart();
     chart->addSeries(series);
     chart->setTitle("Top 5 Artists by Revenue");
@@ -566,7 +562,7 @@ QMap<QString, QColor> MainWindow::GenerateGenreColors(const QMap<QString, QMap<Q
 }
 
 
-void MainWindow::showInteractiveMap()
+void MainWindow::showInteractiveMapSum()
 {
     QSqlQuery query(db);
     query.exec(R"(
@@ -599,5 +595,173 @@ void MainWindow::showInteractiveMap()
         mapData[country][genre] += sales;
     }
 
-    displayMap(mapData); // Передаём данные для отображения
+    displayMapSum(mapData); // Передаём данные для отображения
+}
+
+void MainWindow::showInteractiveMapSumChart()
+{
+    QSqlQuery query(db);
+    query.exec(R"(
+        SELECT BillingCountry, ROUND(SUM(invoice_items.Quantity * invoice_items.UnitPrice), 2) AS TotalSales
+        FROM invoice_items
+        JOIN invoices ON invoice_items.InvoiceId = invoices.InvoiceId
+        JOIN tracks ON invoice_items.TrackId = tracks.TrackId
+        JOIN genres ON tracks.GenreId = genres.GenreId
+        GROUP BY BillingCountry
+        ORDER BY TotalSales DESC;
+    )");
+
+    QMap<QString, QMap<QString, double>> mapData; // Map<Country, Map<Genre, Sales>>
+    QMap<QString, int> countryData;
+    QPieSeries *series = new QPieSeries();
+
+    double otherSales = 0.0; // Для суммирования мелких сегментов
+    int count = 0;             // Счётчик сегментов
+
+    while (query.next()) {
+        QString countryName = query.value("BillingCountry").toString();
+        QString artist = query.value("ArtistName").toString();
+        int sales = query.value("TotalSales").toInt();
+        if (count < 10) { // Добавляем первые 10 сегментов
+            series->append(countryName, sales);
+        } else { // Остальные добавляем в категорию "Other"
+            otherSales += sales;
+        }
+        count++;
+    }
+
+    series->append("Other", otherSales);
+
+    QChart *chart = new QChart();
+    chart->addSeries(series);
+    chart->setTitle("Total sales by country (top 10 + other)");
+    chart->legend()->show();
+
+    for (auto slice : series->slices()) {
+            slice->setLabel(QString("%1: %2").arg(slice->label()).arg(slice->value()));
+            slice->setExploded(false);
+            slice->setLabelVisible(true);
+    }
+
+    // Отображаем диаграмму
+    ui->chartView->setChart(chart);
+    ui->chartView->setRenderHint(QPainter::Antialiasing);
+}
+
+void MainWindow::showInteractiveMapGenre()
+{
+    QSqlQuery query(db);
+    query.exec(R"(
+        SELECT BillingCountry, ROUND(SUM(invoice_items.Quantity * invoice_items.UnitPrice), 2) AS TotalSales
+        FROM invoice_items
+        JOIN invoices ON invoice_items.InvoiceId = invoices.InvoiceId
+        JOIN tracks ON invoice_items.TrackId = tracks.TrackId
+        JOIN genres ON tracks.GenreId = genres.GenreId
+        GROUP BY BillingCountry
+        ORDER BY TotalSales DESC;
+    )");
+
+    QMap<QString, QMap<QString, double>> mapData; // Map<Country, Map<Genre, Sales>>
+    displayTable(query, {"Country", "Total sales"});
+    query.exec(R"(
+        SELECT BillingCountry, genres.Name AS GenreName, SUM(invoice_items.Quantity) AS TotalSales
+        FROM invoice_items
+        JOIN invoices ON invoice_items.InvoiceId = invoices.InvoiceId
+        JOIN tracks ON invoice_items.TrackId = tracks.TrackId
+        JOIN genres ON tracks.GenreId = genres.GenreId
+        GROUP BY BillingCountry, genres.GenreId
+        ORDER BY BillingCountry, TotalSales DESC;
+    )");
+
+    while (query.next()) {
+        QString country = query.value("BillingCountry").toString();
+        QString genre = query.value("GenreName").toString();
+        double sales = query.value("TotalSales").toDouble();
+
+        mapData[country][genre] += sales;
+    }
+
+    displayMapGenre(mapData); // Передаём данные для отображения
+}
+
+
+void MainWindow::AddLegendToScene(QGraphicsScene *scene, const QMap<QString, QColor> &genreColors)
+{
+    double x = 900; // Координаты начала легенды
+    double y = 50;
+
+    for (auto it = genreColors.begin(); it != genreColors.end(); ++it) {
+        QString genre = it.key();
+        QColor color = it.value();
+
+        // Рисуем цветной квадрат
+        scene->addRect(x, y, 20, 20, QPen(Qt::NoPen), QBrush(color));
+
+        // Добавляем текст жанра
+        QGraphicsTextItem *label = scene->addText(genre);
+        label->setPos(x + 30, y);
+
+        y += 15; // Смещение вниз для следующего жанра
+    }
+}
+
+void MainWindow::displayMapGenre(const QMap<QString, QMap<QString, double>> &mapData)
+{
+    // Генерация цветов для жанров
+    QMap<QString, QColor> genreColors = GenerateGenreColors(mapData);
+
+    // Создаём сцену для карты
+    QGraphicsScene *scene = new QGraphicsScene(this);
+    ui->graphicsView->setScene(scene);
+
+    // Устанавливаем фон карты
+    QPixmap mapPixmap("C:\\Qt\\Qt5.12.2\\Projects\\SalesAnalytics\\world_map.png");
+    QGraphicsPixmapItem *mapItem = scene->addPixmap(mapPixmap);
+    mapItem->setZValue(-1);
+
+    QStandardItemModel *model = new QStandardItemModel(this);
+    model->setHorizontalHeaderLabels({"Country", "Top Genre", "Sales"});
+
+    // Добавление данных в карту и таблицу
+    int row = 0;
+    for (const auto &country : mapData.keys()) {
+        if (!countryCoordinates.contains(country)) {
+            qDebug() << "Missing coordinates for country:" << country;
+            continue;
+        }
+
+        // Координаты на карте
+        QPointF coords = countryCoordinates[country];
+
+        // Топовый жанр и продажи
+        QString topGenre;
+        double topSales = 0.0;
+        for (auto it = mapData[country].begin(); it != mapData[country].end(); ++it) {
+            if (it.value() > topSales) {
+                topSales = it.value();
+                topGenre = it.key();
+            }
+        }
+
+        // Рисуем круг для страны на карте
+        QColor genreColor = genreColors.value(topGenre, QColor(Qt::black));
+        double radius = sqrt(topSales)*3;
+        scene->addEllipse(
+            coords.x() - radius / 2, coords.y() - radius / 2, radius, radius,
+            QPen(Qt::NoPen), QBrush(genreColor, Qt::SolidPattern)
+        );
+
+        // Добавляем данные в таблицу
+        model->setItem(row, 0, new QStandardItem(country));
+        model->setItem(row, 1, new QStandardItem(topGenre));
+        model->setItem(row, 2, new QStandardItem(QString::number(topSales, 'f', 2)));
+        row++;
+    }
+
+    // Устанавливаем модель для таблицы
+    ui->tableView->setModel(model);
+    ui->tableView->resizeColumnsToContents();
+
+    // Добавление легенды
+    AddLegendToScene(scene, genreColors);
 }
